@@ -46,6 +46,7 @@ def _find_all_non_hidden_files_and_dirs(location: str):
 
 
 def _execute_shell_commands(commands: list):
+    # TODO capture_output and if error, stop processing?
     [subprocess.run([c], shell=True) for c in commands]
 
 
@@ -77,7 +78,7 @@ def _check_if_requirements_ok(lambda_dir: str):
 
     if lambda_dir not in dir_names:
         this_dir = Path('.').absolute()
-        print(f'Did not find a "{lambda_dir}" directory in {this_dir}. Note: create_zips should be run from the root of your project')
+        print(f'Did not find a "{lambda_dir}" directory in {this_dir}. Note: aws sam deployer should be run from the root of your project')
         return False
     dirs = _find_all_non_hidden_dirs(f'./{lambda_dir}')
 
@@ -105,6 +106,8 @@ def remove_dists(lambda_dir: str = 'lambdas') -> None:
     if _check_if_requirements_ok(lambda_dir):
         for d in _find_all_non_hidden_dirs(f'./{lambda_dir}'):
             _remove_dist(d)
+    else:
+        exit(1)
 
 
 def create_zips(lambda_dir: str = 'lambdas'):
@@ -116,6 +119,8 @@ def create_zips(lambda_dir: str = 'lambdas'):
                 if _requires_pip_install(d):
                     _run_pip_install(d)
                 _run_zip(d)
+    else:
+        exit(1)
 
 
 def create_stack(stack_data: StackData) -> None:
@@ -128,6 +133,9 @@ def create_stack(stack_data: StackData) -> None:
 
 
 def deploy(stack_data: StackData, lambda_dir: str = 'lambdas') -> None:
-    create_zips(lambda_dir)
-    create_stack(stack_data)
-    remove_dists(lambda_dir)
+    if _check_if_requirements_ok:
+        create_zips(lambda_dir)
+        create_stack(stack_data)
+        remove_dists(lambda_dir)
+    else:
+        exit(1)
