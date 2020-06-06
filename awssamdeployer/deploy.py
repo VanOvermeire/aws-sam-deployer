@@ -3,6 +3,9 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
+
+COMMON_DIRECTORY = 'common'
 
 
 class ChangeDir:
@@ -11,12 +14,10 @@ class ChangeDir:
         self.previous_path = sys.path[0]
 
     def __enter__(self):
-        print(f'Going to {self.directory}')
         os.chdir(str(self.directory.resolve()))
         return self.directory
 
     def __exit__(self, type, value, traceback):
-        print(f'going back to {self.previous_path}')
         os.chdir(self.previous_path)
 
 
@@ -28,19 +29,19 @@ class StackData:
     template_name: str = 'template.yaml'
 
 
-def _find_all(location: Path, condition):
+def _find_all(location: str, condition):
     return list([x for x in Path(location).iterdir() if condition(x)])
 
 
-def _find_all_non_hidden_files(location):
+def _find_all_non_hidden_files(location: str):
     return _find_all(location, lambda x: x.is_file() and not x.name.startswith('.'))
 
 
-def _find_all_non_hidden_dirs(location):
+def _find_all_non_hidden_dirs(location: str):
     return _find_all(location, lambda x: x.is_dir() and not x.name.startswith('.'))
 
 
-def _find_all_non_hidden_files_and_dirs(location):
+def _find_all_non_hidden_files_and_dirs(location: str):
     return _find_all(location, lambda x: not x.name.startswith('.'))
 
 
@@ -48,31 +49,26 @@ def _execute_shell_commands(commands: list):
     [subprocess.run([c], shell=True) for c in commands]
 
 
-def _requires_pip_install(directory):
+def _requires_pip_install(directory: Path):
     return 'requirements.txt' in [x.name for x in _find_all_non_hidden_files(directory.relative_to('.'))]
 
 
-def _run_pip_install(directory):
-    print(f'Running pip install for directory {directory}')
-    previous_path = sys.path[0]
-    os.chdir(str(directory.resolve()))
-    _execute_shell_commands(["pip3 install -r requirements.txt -t . >> /dev/null"])
-    os.chdir(previous_path)
+def _run_pip_install(directory: Path):
+    with ChangeDir(directory):
+        print(f'Running pip install for directory {directory}')
+        _execute_shell_commands(['pip3 install -r requirements.txt -t . >> /dev/null'])
 
 
-def _run_zip(directory):
-    print(f'Creating zip for directory {directory}')
-    previous_path = sys.path[0]
-    zip_name = f'{directory.name}.zip'
-
-    os.chdir(str(directory.resolve()))
-    _execute_shell_commands([
-        'rm -rf ./dist',
-        f'zip -r {zip_name} . >> /dev/null',
-        'mkdir dist',
-        f'mv {zip_name} dist',
-    ])
-    os.chdir(previous_path)
+def _run_zip(directory: Path):
+    with ChangeDir(directory):
+        print(f'Creating zip for directory {directory}')
+        zip_name = f'{directory.name}.zip'
+        _execute_shell_commands([
+            'rm -rf ./dist',
+            f'zip -r {zip_name} . >> /dev/null',
+            'mkdir dist',
+            f'mv {zip_name} dist',
+        ])
 
 
 def _check_if_requirements_ok(lambda_dir: str):
@@ -114,7 +110,7 @@ def remove_dists(lambda_dir: str = 'lambdas') -> None:
 def create_zips(lambda_dir: str = 'lambdas'):
     if _check_if_requirements_ok(lambda_dir):
         for d in _find_all_non_hidden_dirs(f'./{lambda_dir}'):
-            if 'common' in d.name:
+            if COMMON_DIRECTORY in d.name:
                 print(f'Ignoring common module {d}')
             else:
                 if _requires_pip_install(d):
