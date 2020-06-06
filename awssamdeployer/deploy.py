@@ -5,6 +5,21 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+class ChangeDir:
+    def __init__(self, directory):
+        self.directory = directory
+        self.previous_path = sys.path[0]
+
+    def __enter__(self):
+        print(f'Going to {self.directory}')
+        os.chdir(str(self.directory.resolve()))
+        return self.directory
+
+    def __exit__(self, type, value, traceback):
+        print(f'going back to {self.previous_path}')
+        os.chdir(self.previous_path)
+
+
 @dataclass(frozen=True)
 class StackData:
     stack_name: str
@@ -52,15 +67,15 @@ def _run_zip(directory):
 
     os.chdir(str(directory.resolve()))
     _execute_shell_commands([
-        "rm -rf ./dist",
+        'rm -rf ./dist',
         f'zip -r {zip_name} . >> /dev/null',
-        "mkdir dist",
+        'mkdir dist',
         f'mv {zip_name} dist',
     ])
     os.chdir(previous_path)
 
 
-def _check_if_requirements_ok(lambda_dir):
+def _check_if_requirements_ok(lambda_dir: str):
     dirs = _find_all_non_hidden_dirs('.')
     dir_names = [d.name for d in dirs]
 
@@ -84,14 +99,21 @@ def _check_if_requirements_ok(lambda_dir):
     return True
 
 
-def remove_dists(lambda_dir='lambdas'):
-    # TODO
-    pass
+def _remove_dist(location: Path):
+    with ChangeDir(location):
+        print(f'Removing any dist folders in {location}')
+        _execute_shell_commands(['rm -rf ./dist'])
 
 
-def create_zips(lambda_dir='lambdas'):
+def remove_dists(lambda_dir: str = 'lambdas') -> None:
     if _check_if_requirements_ok(lambda_dir):
-        for d in _find_all_non_hidden_dirs('./lambdas'):
+        for d in _find_all_non_hidden_dirs(f'./{lambda_dir}'):
+            _remove_dist(d)
+
+
+def create_zips(lambda_dir: str = 'lambdas'):
+    if _check_if_requirements_ok(lambda_dir):
+        for d in _find_all_non_hidden_dirs(f'./{lambda_dir}'):
             if 'common' in d.name:
                 print(f'Ignoring common module {d}')
             else:
@@ -100,7 +122,7 @@ def create_zips(lambda_dir='lambdas'):
                 _run_zip(d)
 
 
-def create_stack(stack_data: StackData):
+def create_stack(stack_data: StackData) -> None:
     prefix = stack_data.bucket_prefix if stack_data.bucket_prefix else stack_data.stack_name
     _execute_shell_commands([
         f'aws cloudformation package --template-file {stack_data.template_name} --s3-bucket "{stack_data.bucket}" --s3-prefix "{prefix}" --output-template-file outputSamTemplate.yaml',
@@ -109,7 +131,7 @@ def create_stack(stack_data: StackData):
     ])
 
 
-def deploy(stack_data: StackData, lambda_dir='lambdas'):
+def deploy(stack_data: StackData, lambda_dir: str = 'lambdas') -> None:
     create_zips(lambda_dir)
     create_stack(stack_data)
     remove_dists(lambda_dir)

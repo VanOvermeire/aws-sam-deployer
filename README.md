@@ -17,5 +17,4 @@ Install with this command:
 ## TODO's
 
 - add common directory to the zips
-- implement cleanup
 - other types of install depending on language
