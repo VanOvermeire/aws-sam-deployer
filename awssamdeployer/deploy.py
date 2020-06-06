@@ -5,10 +5,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-# TODO:
-#  later: add stuff like common to the zip
-#  and maybe cleanup?
-#  and other types of install (npm/maven)
 @dataclass(frozen=True)
 class StackData:
     stack_name: str
@@ -89,6 +85,7 @@ def _check_if_requirements_ok(lambda_dir):
 
 
 def remove_dists(lambda_dir='lambdas'):
+    # TODO
     pass
 
 
