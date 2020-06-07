@@ -20,12 +20,12 @@ from awssamdeployer.deploy import create_zips, remove_dists, create_stack, deplo
 # create your lambda zips. optional parameter = source root of the lambdas (default is 'lambdas')
 create_zips()
 # package and create the stack. StackData takes two more optional parameters: bucket prefix and template name (default is template.yaml)
-create_stack(StackData('example-stack-for-deploy', 'bucket-for-uploaded-zips')
+create_stack(StackData('example-stack-for-deploy', 'bucket-for-uploaded-zips'))
 # remove the dists we created. optional parameter = source root of the lambdas
 remove_dists()
 
 # or do all at once with:
-deploy()
+deploy(StackData('example-stack-for-deploy', 'bucket-for-uploaded-zips'))
 
 ```
 
