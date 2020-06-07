@@ -19,7 +19,7 @@ from awssamdeployer.deploy import create_zips, remove_dists, create_stack, deplo
 
 # create your lambda zips. optional parameter = source root of the lambdas (default is 'lambdas')
 create_zips()
-# package and create the stack. StackData takes two more optional parameters: bucket prefix and template name
+# package and create the stack. StackData takes two more optional parameters: bucket prefix and template name (default is template.yaml)
 create_stack(StackData('example-stack-for-deploy', 'bucket-for-uploaded-zips')
 # remove the dists we created. optional parameter = source root of the lambdas
 remove_dists()
@@ -35,7 +35,12 @@ Install with this command:
 
 `pip3 install git+https://github.com/VanOvermeire/aws-sam-deployer.git`
 
-## TODO's
+## Requirements
+
+AWS CLI should be installed and configured.
+Because the code runs `zip`, the create_zips() command may not work properly on Windows. 
+
+## Possible TODO's
 
 - add common directory to the zips
 - more safety
