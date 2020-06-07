@@ -8,6 +8,27 @@ Some common functionality for deploying a SAM application on AWS:
 - preparing and deploying a stack
 - cleaning up dist folders
 
+Especially handy for small/new projects where a CI/CD setup is still missing.
+
+## Usage
+
+Add a python file to the root of your project directory.
+
+```
+from awssamdeployer.deploy import create_zips, remove_dists, create_stack, deploy, StackData
+
+# create your lambda zips. optional parameter = source root of the lambdas (default is 'lambdas')
+create_zips()
+# package and create the stack. StackData takes two more optional parameters: bucket prefix and template name
+create_stack(StackData('example-stack-for-deploy', 'bucket-for-uploaded-zips')
+# remove the dists we created. optional parameter = source root of the lambdas
+remove_dists()
+
+# or do all at once with:
+deploy()
+
+```
+
 ## Install
 
 Install with this command:
@@ -17,4 +38,6 @@ Install with this command:
 ## TODO's
 
 - add common directory to the zips
-- other types of install depending on language
+- more safety
+- save config somewhere and check that location? (like the bucket for example)
+- other types of install depending on language?
