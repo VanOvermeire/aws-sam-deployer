@@ -25,15 +25,14 @@ def _get_lambda_path_from_root(lambda_dir: str):
 
 def _remove_dist(directory: Path):
     dist_path = _get_dist_path(directory)
-    print(f'Removing {dist_path}')
-    remove_dir(dist_path)
+    print(f'Removing {dist_path} if it exists')
+    return remove_dir(dist_path)
 
 
-def create_dist_and_copy_files(directory: Path) -> Path:
+def _create_dist_and_copy_files(directory: Path) -> Path:
     dist_path = _get_dist_path(directory)
     remove_dir(dist_path)
     copytree(directory, dist_path)
-
     return dist_path
 
 
@@ -71,26 +70,33 @@ def _check_if_requirements_ok(lambda_dir: str):
     return True
 
 
-def remove_dists(lambda_dir: str = 'lambdas') -> None:
-    if _check_if_requirements_ok(lambda_dir):
-        for d in find_all_non_hidden_dirs(_get_lambda_path_from_root(lambda_dir)):
-            _remove_dist(d)
+def _check_requirements_and_run(fun, a_dir: str):
+    if _check_if_requirements_ok(a_dir):
+        fun(a_dir)
     else:
         exit(1)
+
+
+def _check_requirements_and_run_all(fun, a_dir: str):
+    _check_requirements_and_run(lambda x: [fun(x) for x in find_all_non_hidden_dirs(_get_lambda_path_from_root(a_dir))], a_dir)
+
+
+def create_zip_for_lambda_dir(d):
+    if COMMON_DIRECTORY in d.name:
+        print(f'Ignoring {COMMON_DIRECTORY}: {d}')
+    else:
+        dist_of_dir = _create_dist_and_copy_files(d)
+        if _requires_pip_install(dist_of_dir):
+            _run_pip_install(dist_of_dir)
+        _run_zip(dist_of_dir)
+
+
+def remove_dists(lambda_dir: str = 'lambdas'):
+    _check_requirements_and_run_all(_remove_dist, lambda_dir)
 
 
 def create_zips(lambda_dir: str = 'lambdas'):
-    if _check_if_requirements_ok(lambda_dir):
-        for d in find_all_non_hidden_dirs(_get_lambda_path_from_root(lambda_dir)):
-            if COMMON_DIRECTORY in d.name:
-                print(f'Ignoring {COMMON_DIRECTORY}: {d}')
-            else:
-                dist_of_dir = create_dist_and_copy_files(d)
-                if _requires_pip_install(dist_of_dir):
-                    _run_pip_install(dist_of_dir)
-                _run_zip(dist_of_dir)
-    else:
-        exit(1)
+    _check_requirements_and_run_all(create_zip_for_lambda_dir, lambda_dir)
 
 
 def create_stack(stack_data: StackData) -> None:
@@ -104,9 +110,6 @@ def create_stack(stack_data: StackData) -> None:
 
 
 def deploy(stack_data: StackData, lambda_dir: str = 'lambdas') -> None:
-    if _check_if_requirements_ok:
-        create_zips(lambda_dir)
-        create_stack(stack_data)
-        remove_dists(lambda_dir)
-    else:
-        exit(1)
+    create_zips(lambda_dir)
+    create_stack(stack_data)
+    remove_dists(lambda_dir)
