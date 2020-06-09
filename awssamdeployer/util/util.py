@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 from shutil import rmtree
 
@@ -27,18 +28,6 @@ class ChangeDir:
         os.chdir(self.previous_path)
 
 
-def _find_all(location: Path, condition):
-    return list([x for x in location.iterdir() if condition(x)])
-
-
-def find_all_non_hidden_files(location: Path):
-    return _find_all(location, lambda x: x.is_file() and not x.name.startswith('.'))
-
-
-def find_all_non_hidden_dirs(location: Path):
-    return _find_all(location, lambda x: x.is_dir() and not x.name.startswith('.'))
-
-
 def execute_shell_commands(commands: list):
     # TODO capture_output and if error, stop processing?
     [subprocess.run([c], shell=True) for c in commands]
@@ -49,3 +38,11 @@ def remove_dir(directory: Path):
         rmtree(directory)
     except FileNotFoundError:
         pass
+
+
+def _find_all(condition, location: Path):
+    return list([x for x in location.iterdir() if condition(x)])
+
+
+find_all_non_hidden_files = partial(_find_all, lambda x: x.is_file() and not x.name.startswith('.'))
+find_all_non_hidden_dirs = partial(_find_all, lambda x: x.is_dir() and not x.name.startswith('.'))

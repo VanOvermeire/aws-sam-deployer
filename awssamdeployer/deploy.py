@@ -96,6 +96,7 @@ def create_zips(lambda_dir: str = 'lambdas'):
 def create_stack(stack_data: StackData) -> None:
     prefix = stack_data.bucket_prefix if stack_data.bucket_prefix else stack_data.stack_name
     execute_shell_commands([
+        # TODO could do check: if path of codeuri refers to something local, use this. else use python commands: create_change_set -> wait -> execute_change_set
         f'aws cloudformation package --template-file {stack_data.template_name} --s3-bucket "{stack_data.bucket}" --s3-prefix "{prefix}" --output-template-file outputSamTemplate.yaml',
         f'aws cloudformation deploy --template-file outputSamTemplate.yaml --stack-name {stack_data.stack_name} --capabilities CAPABILITY_IAM',
         'rm outputSamTemplate.yaml',  # TODO use path for this?
