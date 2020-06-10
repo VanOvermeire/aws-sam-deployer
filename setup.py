@@ -18,5 +18,6 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
+        'PyMonad >= 1.3'
     ]
 )
