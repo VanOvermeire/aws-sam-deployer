@@ -34,7 +34,7 @@ def _get_lambda_path_from_root(lambda_dir: str):
     return Path(f'./{lambda_dir}')
 
 
-def _print_and_exit_with_error_code_if_left(result):
+def _print_and_exit_with_error_code_if_left(result) -> None:
     print(result.value) if type(result) == Left else [print(r) for r in result]
     if type(result) == Left:
         exit(1)

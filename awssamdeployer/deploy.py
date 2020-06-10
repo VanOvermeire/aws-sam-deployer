@@ -59,12 +59,12 @@ def _build_stack_commands(stack_data: StackData, prefix):
                 'rm outputSamTemplate.yaml')  # use path for this?
 
 
-def remove_dists(lambda_dir: str = DEFAULT_DIR):
+def remove_dists(lambda_dir: str = DEFAULT_DIR) -> None:
     result = check_requirements(lambda_dir) >> get_as_path >> find_all_non_hidden_dirs >> _remove_dist
     _print_and_exit_with_error_code_if_left(result)
 
 
-def create_zips(lambda_dir: str = DEFAULT_DIR):
+def create_zips(lambda_dir: str = DEFAULT_DIR) -> None:
     dirs = check_requirements(lambda_dir) >> get_as_path >> find_all_non_hidden_dirs
     removes = dirs >> _remove_dist
     zips = dirs >> _create_zip
