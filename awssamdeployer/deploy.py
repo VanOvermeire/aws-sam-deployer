@@ -12,9 +12,11 @@ def _requires_pip_install(directory: Path):
 
 
 def _run_pip_install(directory: Path):
-    with ChangeDir(directory):
-        print(f'Running pip install in directory {directory}')
-        execute_shell_command('pip3 install -r requirements.txt -t . >> /dev/null')
+    if _requires_pip_install(directory):
+        with ChangeDir(directory):
+            print(f'Running pip install in {directory}')
+            execute_shell_command('pip3 install -r requirements.txt -t . >> /dev/null')
+    return Just(directory)
 
 
 def _get_dist_path(directory: Path):
@@ -30,29 +32,26 @@ def _remove_dist(directory: Path):
     return remove_dir(dist_path)
 
 
-def _create_dist_and_copy_files(directory: Path) -> Path:
-    dist_path = _get_dist_path(directory)
-    remove_dir(dist_path)
-    copytree(directory, dist_path)
-    return dist_path
-
-
 def _run_zip(directory: Path):
     with ChangeDir(directory):
         zip_name = f'{directory.parent.name}.zip'
         execute_shell_command(f'zip -r {zip_name} . >> /dev/null')
+    return Just(directory)
 
 
-# TODO this part could be more functional
-def _create_zip_for_lambda_dir(d):
-    if COMMON_DIRECTORY in d.name:
-        return List(f'Ignoring {COMMON_DIRECTORY}: {d}')
-    else:
-        dist_of_dir = _create_dist_and_copy_files(d)
-        if _requires_pip_install(dist_of_dir):
-            _run_pip_install(dist_of_dir)
-        _run_zip(dist_of_dir)
-        return List(f'Created zip for {d}')
+def _create_dist_and_copy_files(directory: Path):
+    dist_path = _get_dist_path(directory)
+    copytree(directory, dist_path)
+    return Just(dist_path)
+
+
+def _ignore_common(directory: Path):
+    return Left(f'Ignoring {COMMON_DIRECTORY}: {directory}') if COMMON_DIRECTORY in directory.name else Right(directory)
+
+
+def _create_zip(directory: Path):
+    result = _ignore_common(directory) >> _create_dist_and_copy_files >> _run_pip_install >> _run_zip
+    return List(result.value) if type(result) == Left else List(f'Created zip for {result.value}')
 
 
 def _check_root_dir(lambda_dir):
@@ -93,14 +92,17 @@ def _build_stack_commands(stack_data: StackData, prefix):
                 'rm outputSamTemplate.yaml')  # use path for this?
 
 
+# TODO constant for default
 def remove_dists(lambda_dir: str = 'lambdas'):
     result = _check_requirements(lambda_dir) >> get_as_path >> find_all_non_hidden_dirs >> _remove_dist
     _print_and_exit_with_error_code_if_left(result)
 
 
 def create_zips(lambda_dir: str = 'lambdas'):
-    result = _check_requirements(lambda_dir) >> get_as_path >> find_all_non_hidden_dirs >> _create_zip_for_lambda_dir
-    _print_and_exit_with_error_code_if_left(result)
+    dirs = _check_requirements(lambda_dir) >> get_as_path >> find_all_non_hidden_dirs
+    removes = dirs >> _remove_dist
+    zips = dirs >> _create_zip
+    _print_and_exit_with_error_code_if_left(removes + zips)
 
 
 def create_stack(stack_data: StackData) -> None:
