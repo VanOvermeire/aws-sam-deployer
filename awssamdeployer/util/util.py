@@ -6,7 +6,7 @@ from functools import partial
 from pathlib import Path
 from shutil import rmtree
 
-from pymonad import Just, List
+from pymonad import Just, List, Left
 
 
 @dataclass(frozen=True)
@@ -28,6 +28,16 @@ class ChangeDir:
 
     def __exit__(self, type, value, traceback):
         os.chdir(self.previous_path)
+
+
+def _get_lambda_path_from_root(lambda_dir: str):
+    return Path(f'./{lambda_dir}')
+
+
+def _print_and_exit_with_error_code_if_left(result):
+    print(result.value) if type(result) == Left else [print(r) for r in result]
+    if type(result) == Left:
+        exit(1)
 
 
 def execute_shell_command(command: str):
