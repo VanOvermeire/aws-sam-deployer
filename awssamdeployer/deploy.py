@@ -1,9 +1,10 @@
+from functools import partial
 from pathlib import Path
 from shutil import copytree
 
 from pymonad import Left, Right, Just, List
 
-from awssamdeployer.util.checks import check_requirements
+from awssamdeployer.util.checks import check_requirements, check_stack_requirements
 from awssamdeployer.util.constants import COMMON_DIRECTORY, DIST, DEFAULT_DIR
 from awssamdeployer.util.util import StackData, ChangeDir, remove_dir, find_all_non_hidden_dirs, execute_shell_command, get_as_path, find_all_non_hidden_files, _print_and_exit_with_error_code_if_left
 
@@ -59,6 +60,10 @@ def _build_stack_commands(stack_data: StackData, prefix):
                 'rm outputSamTemplate.yaml')  # use path for this?
 
 
+def _get_prefix(stack_data: StackData):
+    return Just(stack_data.bucket_prefix) if stack_data.bucket_prefix else Just(stack_data.stack_name)
+
+
 def remove_dists(lambda_dir: str = DEFAULT_DIR) -> None:
     result = check_requirements(lambda_dir) >> get_as_path >> find_all_non_hidden_dirs >> _remove_dist
     _print_and_exit_with_error_code_if_left(result)
@@ -72,11 +77,11 @@ def create_zips(lambda_dir: str = DEFAULT_DIR) -> None:
 
 
 def create_stack(stack_data: StackData) -> None:
-    prefix = stack_data.bucket_prefix if stack_data.bucket_prefix else stack_data.stack_name
-    result = _build_stack_commands(stack_data, prefix) >> execute_shell_command
+    result = check_stack_requirements(stack_data) >> _get_prefix >> partial(_build_stack_commands, stack_data) >> execute_shell_command
     _print_and_exit_with_error_code_if_left(result)
 
 
+# TODO use string writer?
 def deploy(stack_data: StackData, lambda_dir: str = DEFAULT_DIR) -> None:
     create_zips(lambda_dir)
     create_stack(stack_data)

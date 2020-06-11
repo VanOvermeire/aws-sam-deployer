@@ -41,6 +41,7 @@ def _print_and_exit_with_error_code_if_left(result) -> None:
 
 
 def execute_shell_command(command: str):
+    # not perfect because execute shell command can throw exceptions
     subprocess.run([command], shell=True)
     return List(f'Ran command {command}')
 
